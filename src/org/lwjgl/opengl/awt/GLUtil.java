@@ -12,18 +12,6 @@ class GLUtil {
         return major == 3 && minor >= 0 || major > 3;
     }
 
-    static boolean validVersionGL(int major, int minor) {
-        return (major == 0 && minor == 0)
-                || // unspecified gets highest supported version on Nvidia
-                (major >= 1 && minor >= 0) && (major != 1 || minor <= 5) && (major != 2 || minor <= 1) && (major != 3 || minor <= 3)
-                && (major != 4 || minor <= 5);
-    }
-
-    public static boolean validVersionGLES(int major, int minor) {
-        return (major == 0 && minor == 0) || // unspecified gets 1.1 on Nvidia
-                (major >= 1 && minor >= 0) && (major != 1 || minor <= 1) && (major != 2 || minor <= 0);
-    }
-
     /**
      * Validate the given {@link GLData} and throw an exception on validation error.
      * 
@@ -60,12 +48,6 @@ class GLUtil {
         }
         if (attribs.api == null) {
             throw new IllegalArgumentException("Unspecified client API");
-        }
-        if (attribs.api == API.GL && !validVersionGL(attribs.majorVersion, attribs.minorVersion)) {
-            throw new IllegalArgumentException("Invalid OpenGL version");
-        }
-        if (attribs.api == API.GLES && !validVersionGLES(attribs.majorVersion, attribs.minorVersion)) {
-            throw new IllegalArgumentException("Invalid OpenGL ES version");
         }
         if (!attribs.doubleBuffer && attribs.swapInterval != null) {
             throw new IllegalArgumentException("Swap interval set but not using double buffering");
