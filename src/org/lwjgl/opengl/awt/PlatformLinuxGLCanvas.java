@@ -54,7 +54,7 @@ public class PlatformLinuxGLCanvas implements PlatformGLCanvas {
 	public Collection<String> extensions;
 	public boolean has_GLX_EXT_swap_control, has_GLX_EXT_swap_control_tear;
 
-	private long create(int depth, GLData attribs, GLData effective) throws AWTException {
+	private ContextData create(int depth, GLData attribs) throws AWTException {
 		int screen = X11.XDefaultScreen(display);
 		extensions = new HashSet<String>(Arrays.asList(glXQueryExtensionsString(display, screen).split(" ")));
 		has_GLX_EXT_swap_control = extensions.contains("GLX_EXT_swap_control");
@@ -80,11 +80,11 @@ public class PlatformLinuxGLCanvas implements PlatformGLCanvas {
 		
 		long share_context = NULL;
 		if(Objects.nonNull(attribs.shareContext)) {
-			if(attribs.shareContext.context == NULL){
+			if(attribs.shareContext.context == null){
 				throw new IllegalStateException(
 						"Attributes specified shareContext but it is not yet created and thus cannot be shared");
 			}
-			share_context = attribs.shareContext.context;
+			share_context = attribs.shareContext.context.ctx;
 		}
 		
 		long context = glXCreateContextAttribsARB(display, fbConfigs.get(0), share_context, true, gl_attrib_list);
@@ -92,6 +92,7 @@ public class PlatformLinuxGLCanvas implements PlatformGLCanvas {
 			throw new AWTException("Unable to create GLX context");
 		}
 
+		GLData effective = new GLData();
 		populateEffectiveGLXAttribs(display, fbConfigs.get(0), effective);
 
 		if (!makeCurrent(context)) {
@@ -100,7 +101,7 @@ public class PlatformLinuxGLCanvas implements PlatformGLCanvas {
 		populateEffectiveGLAttribs(effective);
 		makeCurrent(0 /* no context */);
 
-		return context;
+		return new ContextData(context, effective);
 	}
 
 	public void lock() throws AWTException {
@@ -113,7 +114,7 @@ public class PlatformLinuxGLCanvas implements PlatformGLCanvas {
 		JAWT_DrawingSurface_Unlock(ds, ds.Unlock());
 	}
 
-	public long create(Canvas canvas, GLData attribs, GLData effective) throws AWTException {
+	public ContextData create(Canvas canvas, GLData attribs) throws AWTException {
 		this.ds = JAWT_GetDrawingSurface(canvas, awt.GetDrawingSurface());
 		JAWTDrawingSurface ds = JAWT_GetDrawingSurface(canvas, awt.GetDrawingSurface());
 		try {
@@ -125,7 +126,7 @@ public class PlatformLinuxGLCanvas implements PlatformGLCanvas {
 					int depth = dsiWin.depth();
 					this.display = dsiWin.display();
 					this.drawable = dsiWin.drawable();
-					return create(depth, attribs, effective);
+					return create(depth, attribs);
 				} finally {
 					JAWT_DrawingSurface_FreeDrawingSurfaceInfo(dsi, ds.FreeDrawingSurfaceInfo());
 				}
@@ -137,7 +138,7 @@ public class PlatformLinuxGLCanvas implements PlatformGLCanvas {
 		}
 	}
 
-	public boolean deleteContext(long context) {
+	public boolean deleteContext(ContextData context) {
 		return false;
 	}
 

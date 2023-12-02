@@ -129,7 +129,7 @@ public class PlatformWin32GLCanvas implements PlatformGLCanvas {
     }
 
     @Override
-    public long create(Canvas canvas, GLData attribs, GLData effective) throws AWTException {
+    public ContextData create(Canvas canvas, GLData attribs) throws AWTException {
         this.ds = JAWT_GetDrawingSurface(canvas, awt.GetDrawingSurface());
         JAWTDrawingSurface ds = JAWT_GetDrawingSurface(canvas, awt.GetDrawingSurface());
         try {
@@ -144,7 +144,7 @@ public class PlatformWin32GLCanvas implements PlatformGLCanvas {
                     try (MemoryStack stack = stackPush()) {
                         long hwndDummy = createDummyWindow(stack);
                         try {
-                            return create(stack, hwnd, hwndDummy, attribs, effective);
+                            return create(stack, hwnd, hwndDummy, attribs);
                         } finally {
                             DestroyWindow(hwndDummy);
                         }
@@ -160,7 +160,7 @@ public class PlatformWin32GLCanvas implements PlatformGLCanvas {
         }
     }
 
-    private long create(MemoryStack stack, long windowHandle, long dummyWindowHandle, GLData attribs, GLData effective) throws AWTException {
+    private ContextData create(MemoryStack stack, long windowHandle, long dummyWindowHandle, GLData attribs) throws AWTException {
         long bufferAddr = stack.nmalloc(4, (4*2) << 2);
 
         // Validate context attributes
@@ -259,6 +259,7 @@ public class PlatformWin32GLCanvas implements PlatformGLCanvas {
 	    this.has_WGL_EXT_swap_control_tear = wglExtensionsList.contains("WGL_EXT_swap_control_tear");
 	}
 
+	GLData effective = new GLData();
         // For some constellations of context attributes, we can stop right here.
         if (!atLeast30(attribs.majorVersion, attribs.minorVersion) && attribs.samples == 0 && !attribs.sRGB && !attribs.pixelFormatFloat
                 && attribs.contextReleaseBehavior == null && !attribs.robustness && attribs.api != API.GLES) {
@@ -323,7 +324,7 @@ public class PlatformWin32GLCanvas implements PlatformGLCanvas {
 
             /* Check if we want to share context */
             if (attribs.shareContext != null) {
-                success = wglShareLists(attribs.shareContext.context, context);
+                success = wglShareLists(attribs.shareContext.context.ctx, context);
                 if (!success) {
                     ReleaseDC(windowHandle, hDC);
                     wglMakeCurrent(currentDc, currentContext);
@@ -362,7 +363,7 @@ public class PlatformWin32GLCanvas implements PlatformGLCanvas {
 
             // Restore old context
             wglMakeCurrent(currentDc, currentContext);
-            return context;
+            return new ContextData(context, effective);
         }
 
         // Check for WGL_ARB_create_context support
@@ -603,7 +604,7 @@ public class PlatformWin32GLCanvas implements PlatformGLCanvas {
             throw new AWTException("Failed to set pixel format.");
         }
         // And create new context with it
-        long newCtx = callPPPP(hDC, attribs.shareContext != null ? attribs.shareContext.context : 0L, attribListAddr, wglCreateContextAttribsARBAddr);
+        long newCtx = callPPPP(hDC, attribs.shareContext != null ? attribs.shareContext.context.ctx : 0L, attribListAddr, wglCreateContextAttribsARBAddr);
         wglDeleteContext(dummyContext);
         if (newCtx == 0L) {
             ReleaseDC(windowHandle, hDC);
@@ -697,7 +698,7 @@ public class PlatformWin32GLCanvas implements PlatformGLCanvas {
         }
         // Restore old context
         wglMakeCurrent(currentDc, currentContext);
-        return newCtx;
+        return new ContextData(newCtx, effective);
     }
 
     private static void wglNvSwapGroupAndBarrier(GLData attribs, long bufferAddr, long hDC) throws AWTException {
@@ -753,8 +754,8 @@ public class PlatformWin32GLCanvas implements PlatformGLCanvas {
     }
 
     @Override
-    public boolean deleteContext(long context) {
-        return wglDeleteContext(context);
+    public boolean deleteContext(ContextData context) {
+        return wglDeleteContext(context.ctx);
     }
 
     @Override
