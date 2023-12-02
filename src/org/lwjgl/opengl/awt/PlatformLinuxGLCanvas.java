@@ -115,6 +115,7 @@ public class PlatformLinuxGLCanvas implements PlatformGLCanvas {
 	}
 
 	public ContextData create(Canvas canvas, GLData attribs) throws AWTException {
+		GLUtil.validateAttributes(attribs);
 		this.ds = JAWT_GetDrawingSurface(canvas, awt.GetDrawingSurface());
 		JAWTDrawingSurface ds = JAWT_GetDrawingSurface(canvas, awt.GetDrawingSurface());
 		try {

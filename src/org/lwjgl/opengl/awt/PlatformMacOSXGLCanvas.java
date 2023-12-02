@@ -94,6 +94,7 @@ public class PlatformMacOSXGLCanvas implements PlatformGLCanvas {
 
     @Override
     public ContextData create(Canvas canvas, GLData attribs) throws AWTException {
+        GLUtil.validateAttributes(attribs);
         this.ds = JAWT_GetDrawingSurface(canvas, awt.GetDrawingSurface());
         canvas.addHierarchyListener(e -> {
             // if the canvas, or a parent component is hidden/shown, we must update the hidden state of the layer
